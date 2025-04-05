@@ -1,0 +1,17 @@
+
+#include <stdio.h>
+
+|.include src/asm/jitlib.dash
+
+void jit() {
+    | begin
+
+    |->entry:
+    | mov eax, 10
+    | ret
+
+    | end
+
+    size_t out = JIT(entry);
+    printf("%zu\n", out);
+}

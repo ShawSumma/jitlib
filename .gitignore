@@ -1,0 +1,3 @@
+src/asm/*.c
+*.o
+bin

@@ -1,0 +1,62 @@
+
+
+#include "dasm/src/dasm_proto.h"
+#include "dasm/src/dasm_x86.h"
+
+|.arch x64
+
+#if _WIN32
+#include <Windows.h>
+#else
+#include <sys/mman.h>
+#if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
+#define MAP_ANONYMOUS MAP_ANON
+#endif
+#endif
+
+
+static inline void *dasm_emit(dasm_State** d)
+{
+  size_t sz;
+  void* buf;
+  dasm_link(d, &sz);
+#ifdef _WIN32
+  buf = VirtualAlloc(0, sz, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+#else
+  buf = mmap(0, sz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+#endif
+  dasm_encode(d, buf);
+#ifdef _WIN32
+  {DWORD dwOld; VirtualProtect(buf, sz, PAGE_EXECUTE_READ, &dwOld); }
+#else
+  mprotect(buf, sz, PROT_READ | PROT_EXEC);
+#endif
+  return buf;
+}
+
+#define Dst (&dst)
+
+|.macro begin
+  || dasm_State *dst;
+  |.section code
+  || dasm_init(&dst, DASM_MAXSECTION);
+  |.globals lbl_
+  || void* labels[lbl__MAX];
+  || dasm_setupglobal(&dst, labels, lbl__MAX);
+  |.actionlist bf_actions
+  || dasm_setup(&dst, bf_actions);
+  |.code
+|.endmacro
+
+|.macro grow, n
+  || dasm_growpc(&dst, n);
+|.endmacro
+
+|.macro end
+  ||dasm_emit(&dst);
+  ||dasm_free(&dst);
+|.endmacro
+
+#define JIT(name, ...) \
+  ((size_t(*)()) labels[lbl_ ## name])(__VA_ARGS__)
+
