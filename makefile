@@ -5,7 +5,7 @@ OUT = ./bin/out$(EXE)
 ARGS =
 
 LDFLAGS =
-CFLAGS =
+CFLAGS = -O2
 LUA = bin/lua$(EXE)
 DASC_FILE = src/asm/jit.dasc
 DO_FILE = $(DASC_FILE:%.dasc=%.o)

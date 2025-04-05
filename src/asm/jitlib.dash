@@ -57,6 +57,8 @@ static inline void *dasm_emit(dasm_State** d)
   ||dasm_free(&dst);
 |.endmacro
 
+#define EXPORT(name) ((void *) labels[lbl_ ## name])
+
 #define JIT(name, ...) \
   ((size_t(*)()) labels[lbl_ ## name])(__VA_ARGS__)
 

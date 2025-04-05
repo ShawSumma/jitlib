@@ -1,17 +1,95 @@
 
 #include <stdio.h>
+#include <stdbool.h>
 
 |.include src/asm/jitlib.dash
 
+enum {
+    END,
+    MOV,
+    ADD,
+    MUL,
+    RET,
+};
+
+|.macro load, x64reg, vmreg
+    | mov x64reg, [rcx + (vmreg*8)]
+|.endmacro
+
+|.macro store, vmreg, x64reg
+    | mov [rcx + (vmreg*8)], x64reg
+|.endmacro
+
+|.macro const, vmreg, value
+    | mov64 rax, value
+    | mov [rcx + (vmreg*8)], rax
+|.endmacro
+
 void jit() {
+    size_t nregs = 24;
+
+    size_t bytecode[] = {
+        MOV, 0, 3,
+        MOV, 1, 6,
+        MUL, 2, 0, 1,
+        ADD, 2, 2, 0,
+        RET, 2,
+        END,
+    };
+
     | begin
 
-    |->entry:
-    | mov eax, 10
-    | ret
+    |->main:
+
+    | sub rsp, 16 * nregs
+    | mov rcx, rsp
+
+    size_t index = 0;
+    while (true) {
+        switch(bytecode[index++]) {
+            case END: {
+                goto done;
+            }
+            case MOV: {
+                size_t out = bytecode[index++];
+                size_t val = bytecode[index++];
+                | const out, val
+                break;
+            }
+            case ADD: {
+                size_t out = bytecode[index++];
+                size_t arg1 = bytecode[index++];
+                size_t arg2 = bytecode[index++];
+                | load rax, arg1
+                | load rdx, arg2
+                | add rax, rdx
+                | store out, rax
+                break;
+            }
+            case MUL: {
+                size_t out = bytecode[index++];
+                size_t arg1 = bytecode[index++];
+                size_t arg2 = bytecode[index++];
+                | load rax, arg1
+                | load rdx, arg2
+                | imul rdx
+                | store out, rax
+                break;
+            }
+            case RET: {
+                size_t arg1 = bytecode[index++];
+                | load rax, arg1
+                | add rsp, 16 * nregs
+                | ret
+                break;
+            }
+        }
+    }
+done:;
 
     | end
 
-    size_t out = JIT(entry);
-    printf("%zu\n", out);
+    size_t value = JIT(main);
+
+    printf("%zu\n", value);
 }
