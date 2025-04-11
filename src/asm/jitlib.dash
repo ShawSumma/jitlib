@@ -1,9 +1,13 @@
 
-
-#include "dasm/src/dasm_proto.h"
-#include "dasm/src/dasm_x86.h"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-va-list-exhausted"
+#include <dasm_proto.h>
+#include <dasm_x86.h>
+#pragma GCC diagnostic pop
 
 |.arch x64
+
+|.section code
 
 #if _WIN32
 #include <Windows.h>
@@ -14,9 +18,7 @@
 #endif
 #endif
 
-
-static inline void *dasm_emit(dasm_State** d)
-{
+static inline void *dasm_emit(dasm_State** d) {
   size_t sz;
   void* buf;
   dasm_link(d, &sz);
@@ -34,31 +36,54 @@ static inline void *dasm_emit(dasm_State** d)
   return buf;
 }
 
-#define Dst (&dst)
+#define Dst (&jit->dst)
+
+typedef struct {
+  const char *const *externs;
+  dasm_State *dst;
+} jit_t;
 
 |.macro begin
-  || dasm_State *dst;
-  |.section code
-  || dasm_init(&dst, DASM_MAXSECTION);
+  |.externnames externs
+  || jit_t *jit = &(jit_t) { &externs[0], NULL };
+  || dasm_init(Dst, DASM_MAXSECTION);
   |.globals lbl_
-  || void* labels[lbl__MAX];
-  || dasm_setupglobal(&dst, labels, lbl__MAX);
+  || size_t (*labels[lbl__MAX])();
+  || dasm_setupglobal(Dst, (void *) labels, lbl__MAX);
   |.actionlist bf_actions
-  || dasm_setup(&dst, bf_actions);
+  || dasm_setup(Dst, bf_actions);
   |.code
 |.endmacro
 
 |.macro grow, n
-  || dasm_growpc(&dst, n);
+  || dasm_growpc(Dst, n);
 |.endmacro
 
 |.macro end
-  ||dasm_emit(&dst);
-  ||dasm_free(&dst);
+  ||dasm_emit(Dst);
+  ||dasm_free(Dst);
 |.endmacro
 
-#define EXPORT(name) ((void *) labels[lbl_ ## name])
+#define export(type, name) ((type) labels[lbl_ ## name])
 
-#define JIT(name, ...) \
-  ((size_t(*)()) labels[lbl_ ## name])(__VA_ARGS__)
+#define call(name, ...) \
+  (labels[lbl_ ## name](__VA_ARGS__))
 
+enum {
+  RAX,
+  RCX,
+  RDX,
+  RBX,
+  RSP,
+  RBP,
+  RSI,
+  RDI,
+  R8,
+  R9,
+  R10,
+  R11,
+  R12,
+  R13,
+  R14,
+  R15,
+};

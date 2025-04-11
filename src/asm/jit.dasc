@@ -1,6 +1,14 @@
 
-#include <stdio.h>
+#include <assert.h>
+#include <ctype.h>
+#include <inttypes.h>
+#include <stdarg.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 |.include src/asm/jitlib.dash
 
@@ -10,30 +18,26 @@ enum {
     ADD,
     MUL,
     RET,
+    ARG,
+    TSC,
 };
 
-|.macro load, x64reg, vmreg
-    | mov x64reg, [rcx + (vmreg*8)]
-|.endmacro
-
-|.macro store, vmreg, x64reg
-    | mov [rcx + (vmreg*8)], x64reg
-|.endmacro
-
-|.macro const, vmreg, value
-    | mov64 rax, value
-    | mov [rcx + (vmreg*8)], rax
-|.endmacro
+#ifdef _WIN32
+static const uint8_t x64_params[] = { RCX, RDX, R8, R9, };
+static const size_t x64_out = RAX;
+#else
+static const uint8_t x64_params[] = { RDI, RSI, RDX, RCX, R8, R9, };
+static const size_t x64_out = RAX;
+#endif
 
 void jit() {
-    size_t nregs = 24;
+    size_t stack = 16 * 8;
 
     size_t bytecode[] = {
-        MOV, 0, 3,
-        MOV, 1, 6,
-        MUL, 2, 0, 1,
-        ADD, 2, 2, 0,
-        RET, 2,
+        ARG, 0, 0,
+        ARG, 1, 1,
+        ADD, 0, 0, 1,
+        RET, 0,
         END,
     };
 
@@ -41,8 +45,7 @@ void jit() {
 
     |->main:
 
-    | sub rsp, 16 * nregs
-    | mov rcx, rsp
+    | sub rsp, stack
 
     size_t index = 0;
     while (true) {
@@ -53,34 +56,53 @@ void jit() {
             case MOV: {
                 size_t out = bytecode[index++];
                 size_t val = bytecode[index++];
-                | const out, val
+                | mov64 Rq(x64_out), val
+                | mov [rsp + out * 8], Rq(x64_out)
                 break;
             }
             case ADD: {
                 size_t out = bytecode[index++];
                 size_t arg1 = bytecode[index++];
                 size_t arg2 = bytecode[index++];
-                | load rax, arg1
-                | load rdx, arg2
-                | add rax, rdx
-                | store out, rax
+                if (out == arg1) {
+                    | mov Rq(x64_out), [rsp + arg2 * 8]
+                    | add [rsp + out * 8], Rq(x64_out)
+                } else if (out == arg2) {
+                    | mov Rq(x64_out), [rsp + arg1 * 8]
+                    | add [rsp + out * 8], Rq(x64_out)
+                } else {
+                    | mov Rq(x64_out), [rsp + arg1 * 8]
+                    | add Rq(x64_out), [rsp + arg2 * 8]
+                    | mov [rsp + out * 8], Rq(x64_out)
+                }
                 break;
             }
             case MUL: {
                 size_t out = bytecode[index++];
                 size_t arg1 = bytecode[index++];
                 size_t arg2 = bytecode[index++];
-                | load rax, arg1
-                | load rdx, arg2
-                | imul rdx
-                | store out, rax
+                if (x64_out != RAX) {
+                    | push rax
+                }
+                | mov rax, [rsp + arg1 * 8]
+                | imul qword [rsp + arg2 * 8]
+                | mov [rsp + out * 8], rax
+                if (x64_out != RAX) {
+                    | pop rax
+                }
                 break;
             }
             case RET: {
                 size_t arg1 = bytecode[index++];
-                | load rax, arg1
-                | add rsp, 16 * nregs
+                | mov Rq(x64_out), [rsp + arg1 * 8]
+                | add rsp, stack
                 | ret
+                break;
+            }
+            case ARG: {
+                size_t out = bytecode[index++];
+                size_t argno = bytecode[index++];
+                | mov [rsp + out * 8], Rq(x64_params[argno])
                 break;
             }
         }
@@ -89,7 +111,7 @@ done:;
 
     | end
 
-    size_t value = JIT(main);
+    size_t (*const add)(size_t a, size_t b) = export(size_t(*)(size_t, size_t), main);
 
-    printf("%zu\n", value);
+    printf("%zu\n", add(3, 5));
 }

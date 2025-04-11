@@ -294,10 +294,10 @@ DASM_FDEF int dasm_link(Dst_DECL, size_t *szp)
     while (pos != lastpos) {
       dasm_ActList p = D->actionlist + b[pos++];
       while (1) {
-        int op, action = *p++;
+        int action = *p++;
         switch (action) {
-        case DASM_REL_LG: p++; op = p[-3]; goto rel_pc;
-        case DASM_REL_PC: op = p[-2]; rel_pc: {
+        case DASM_REL_LG: p++; goto rel_pc;
+        case DASM_REL_PC: rel_pc: {
           // TODO: disabled - generates invalid code for MOVAPS/MOVUPS xmm, m128
           // int shrink = op == 0xe9 ? 3 : ((op&0xf0) == 0x80 ? 4 : 0);
           int shrink = 0;

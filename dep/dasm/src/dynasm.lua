@@ -180,6 +180,11 @@ local readfile
 
 ------------------------------------------------------------------------------
 
+-- Makefile Depends
+local makedeps = {}
+
+------------------------------------------------------------------------------
+
 -- Map for defines (initially empty, chains to arch-specific map).
 local map_def = {}
 
@@ -357,6 +362,7 @@ local function pathopen(path, name)
     local fullname = p == "" and name or p..dirsep..name
     local fin = io.open(fullname, "r")
     if fin then
+      makedeps[#makedeps + 1] = fullname
       g_fname = fullname
       return fin
     end
@@ -995,6 +1001,8 @@ Usage: dynasm [OPTION]... INFILE.dasc|-
 
   -P, --dumpdef        Dump defines, macros, etc. Repeat for more output.
   -A, --dumparch ARCH  Load architecture ARCH and dump description.
+
+  -d, --depfile FILE   Write a makefile with dependencies.
 ]]
   exit(0)
 end
@@ -1016,6 +1024,9 @@ function opt_map.maccomment() g_opt.maccomment = true end
 function opt_map.nolineno() g_opt.cpp = false end
 function opt_map.flushline() g_opt.flushline = true end
 function opt_map.dumpdef() g_opt.dumpdef = g_opt.dumpdef + 1 end
+function opt_map.depfile(args) 
+  g_opt.depfile = optparam(args)
+end
 
 ------------------------------------------------------------------------------
 
@@ -1026,6 +1037,7 @@ local opt_alias = {
   c = "ccomment", C = "cppcomment", N = "nocomment", M = "maccomment",
   L = "nolineno", F = "flushline",
   P = "dumpdef", A = "dumparch",
+  d = "depfile",
 }
 
 -- Parse single option.
@@ -1036,6 +1048,27 @@ local function parseopt(opt, args)
     opterror("unrecognized option `", opt_current, "'. Try `--help'.\n")
   end
   f(args)
+end
+
+local function gendeps(file, deps)
+  if not g_opt.depfile then
+    return
+  end
+
+  local outfile = io.open(g_opt.depfile, 'w')
+  
+  assert(outfile)
+
+  outfile:write(g_opt.outfile)
+  outfile:write(': ')
+
+  for i=1, #deps do
+    outfile:write(deps[i])
+    if i ~= #deps then
+      outfile:write('\\\n')
+    end
+  end
+  outfile:write('\n')
 end
 
 -- Parse arguments.
@@ -1076,6 +1109,8 @@ local function parseargs(args)
   -- Translate a single input file to a single output file
   -- TODO: Handle multiple files?
   translate(args[args.argn], g_opt.outfile)
+
+  gendeps(g_opt.makedeps, makedeps)
 end
 
 ------------------------------------------------------------------------------

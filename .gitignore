@@ -1,3 +1,2 @@
-src/asm/*.c
-*.o
-bin
+build
+compile_commands.json
