@@ -1,6 +1,4 @@
 
 # JitLib
 
-JitLib: a simple Jit in C
-
-It returns 10 :D
+A Jit Library builder for C.

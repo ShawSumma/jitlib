@@ -18,6 +18,8 @@ struct TYPE(t) {
 
 };
 
+#error TODO: hashtable
+
 #undef KEY
 #undef VALUE
 #undef TYPE

@@ -1,0 +1,68 @@
+
+#include <assert.h>
+#include <ctype.h>
+#include <inttypes.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+|.include include/jit/jitlib.dash
+
+$includes
+
+typedef struct {
+    uint8_t ret;
+    uint8_t nargs;
+    uint8_t args[16];
+} abi_t;
+
+#ifdef _WIN32
+static const abi_t abi = {
+    .ret = RAX,
+    .nargs = 4,
+    .args[0] = RCX,
+    .args[1] = RDX,
+    .args[2] = R8,
+    .args[3] = R9,
+};
+#else
+static const abi_t abi = {
+    .ret = RAX,
+    .nargs = 6,
+    .args[0] = RDI,
+    .args[1] = RSI,
+    .args[2] = RDX,
+    .args[3] = RCX,
+    .args[4] = R8,
+    .args[5] = R9,
+};
+#endif
+
+$globals
+
+#define error(...) (fprintf(stderr, __VA_ARGS__), exit(1))
+
+#define $next(type) (* (type *) ((size_t) $scope_bytecode.mem + ($scope_index += sizeof(type)) - sizeof(type)))
+
+void $scope_run(const $scope_buf_t $scope_bytecode) {
+    $pre
+
+    size_t $scope_index = 0;
+
+    while ($scope_index < $scope_bytecode.len) {
+        size_t $scope_index_base = $scope_index;
+        $scope_opcode_t op = $next($scope_opcode_t);
+        switch(op) {
+            $cases
+            default: {
+                error("unknown opcode: %zu (byte %zu)\n", (size_t) op, $scope_index_base);
+            }
+        }
+    }
+    
+    $post
+}

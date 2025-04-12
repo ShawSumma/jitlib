@@ -1,0 +1,24 @@
+
+start: scope*
+
+scope: "scope" NAME "{" (pre | post | op | global)* "}"
+
+global: "global" block
+
+pre: "pre" block
+
+post: "post" block
+
+op: "op" NAME (arg ("," arg)*)? block
+
+arg: RAW "(" NAME ":" NAME ")"
+
+block: "{" LINE? (block LINE)* "}"
+
+LINE: /[^{}]+/
+
+RAW: /[a-z$#]/
+
+NAME: /[a-z_A-Z][a-z_A-Z0-9]*/
+
+%ignore /[ \t\r\n]+/

@@ -4,6 +4,7 @@ EXE =
 OUT = ${BIN_DIR}out${EXE}
 ARGS =
 PRE =
+PYTHON = python3
 
 # CC_PRE = env LANG=en_US.ISO-8859-1
 
@@ -15,12 +16,12 @@ DEP_DIR = ${BUILD_DIR}dep/
 
 FLAGS = 
 LDFLAGS = -lm
-CFLAGS = -std=c11 -O2 -Wall -Wextra -pedantic -I dep/dasm/src
+CFLAGS = -std=c11 -O2 -Wall -Wextra -pedantic -I dep/dasm/src -I include
 
 CFLAGS += -fanalyzer
 
-DASC_FILES = src/asm/jit.dasc
-C_FILES = src/nodes.c src/entry.c
+DASC_FILES != find "src" -type f -name '*.dasc'
+C_FILES != find "src" -type f -name '*.c'
 
 LDFLAGS += ${FLAGS}
 CFLAGS += ${FLAGS}
@@ -37,21 +38,25 @@ DASC_SCAN = ${@:${GEN_DIR}%.c=${DEP_DIR}%.dep}
 O_SCAN = ${@:${OBJ_DIR}%.o=${DEP_DIR}%.dep}
 C_SCAN = ${@:${OBJ_DIR}%.c=${DEP_DIR}%.dep}
 
-DEP_FILES != find "${DEP_DIR}" -type f -name '*.dep'
+DEP_FILES = ${DASC_SCAN} ${O_SCAN} ${C_SCAN}
 
 QUIET = @
 
 TEST_DEPS = ${O_FILE:${OBJ_DIR}%.o=test -f ${DEP_DIR}%.dep && }
 
-default: run
+default: vmdef
 
 include ${DEP_FILES}
+
+vmdef: .dummy
+	${PYTHON} dep/vm/gen.py vmdef.def
+	${MAKE} run
 
 clean: .dummy
 	rm -rf ${BUILD_DIR}
 
 run: bins
-	${QUIET} ${PRE} ${OUT} ${ARGS}
+	${PRE} ${OUT} ${ARGS}
 
 bins: ${OUT}
 
@@ -62,8 +67,7 @@ ${OUT}: ${O_FILE}
 ${GEN_DIR}%.c: %.dasc ${LUA}
 	${MKDIR} ${dir ${@}}
 	${MKDIR} ${dir ${DASC_SCAN}}
-	${LUA} dep/dasm/src/dynasm.lua --depfile "${DASC_SCAN}" -D X64 -o ${@} ${@:${GEN_DIR}%.c=%.dasc}
-	@echo ${DASC_SCAN}
+	${LUA} dep/dasm/src/dynasm.lua --depfile ${DASC_SCAN} -D X64 -o ${@} ${@:${GEN_DIR}%.c=%.dasc}
 
 ${OBJ_DIR}%.o: %.c
 	${MKDIR} ${dir ${@}}

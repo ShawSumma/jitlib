@@ -60,12 +60,12 @@ static inline TYPE(elem_t) TYPE(pop) (TYPE(t) *vec) {
     return vec->data[--vec->len];
 }
 
-static inline size_t TYPE(size) (TYPE(t) *vec) {
+static inline size_t TYPE(len) (TYPE(t) *vec) {
     return vec->len;
 }
 
 static inline _Bool TYPE(is_empty) (TYPE(t) *vec) {
-    return TYPE(size)(vec) == 0;
+    return TYPE(len)(vec) == 0;
 }
 
 #undef LIST

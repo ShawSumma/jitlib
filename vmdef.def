@@ -1,0 +1,68 @@
+
+scope interp {
+    global {
+        static inline void debug_print(size_t n) {
+            printf("debug: %zu\n", n);
+        }
+    }
+
+    op debug r(reg: size_t) {
+        | mov Rq(abi.args[0]), [rsp + reg * 8]
+        | mov64 rax, debug_print
+        | call rax
+    }
+
+    op mov r(out: size_t), #(val: size_t) {
+        | mov64 rax, val
+        | mov [rsp + out * 8], rax
+    }
+
+    op add r(out: size_t), r(lhs: size_t), r(rhs: size_t) {
+        | mov rax, [rsp + lhs * 8]
+        | add rax, [rsp + rhs * 8]
+        | mov [rsp + out * 8], rax
+    }
+
+    op mul r(out: size_t), r(lhs: size_t), r(rhs: size_t) {
+        if (abi.ret != RAX) {
+            | push rax
+        }
+        | mov rax, [rsp + lhs * 8]
+        | imul qword [rsp + rhs * 8]
+        | mov [rsp + out * 8], rax
+        if (abi.ret != RAX) {
+            | pop rax
+        }
+    }
+
+    op ret r(out: size_t) {
+        | mov Rq(abi.ret), [rsp + out * 8]
+        | add rsp, stack
+        | ret
+    }
+
+    op arg r(out: size_t), $(arg: size_t) {
+        if (arg - 1 > abi.nargs) {
+            error("arg");
+        }
+        | mov [rsp + out * 8], Rq(abi.args[arg - 1])
+    }
+
+    pre {
+        size_t stack = 16 * 8;
+
+        | begin
+
+        |->func:
+        | sub rsp, stack
+    }
+
+    post {
+        | add rsp, stack
+        | ret
+
+        | end
+
+        export(void(*)(void), func)();
+    }
+}
