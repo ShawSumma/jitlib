@@ -1,8 +1,12 @@
 
+TEST = jit
+
+VMDEF = test/${TEST}.vmdef
+ARGS = test/${TEST}.vmasm
+
 CC = gcc
 EXE = 
 OUT = ${BIN_DIR}out${EXE}
-ARGS =
 PRE =
 PYTHON = python3
 
@@ -16,9 +20,11 @@ DEP_DIR = ${BUILD_DIR}dep/
 
 FLAGS = 
 LDFLAGS = -lm
-CFLAGS = -std=c11 -O2 -Wall -Wextra -pedantic -I dep/dasm/src -I include
+CFLAGS = -std=c11 -Wall -Wextra -pedantic -I dep/dasm/src -I include
 
-CFLAGS += -fanalyzer
+FLAGS += -g2
+# CLFAGS += -O2
+# CFLAGS += -fanalyzer
 
 DASC_FILES != find "src" -type f -name '*.dasc'
 C_FILES != find "src" -type f -name '*.c'
@@ -44,13 +50,14 @@ QUIET = @
 
 TEST_DEPS = ${O_FILE:${OBJ_DIR}%.o=test -f ${DEP_DIR}%.dep && }
 
-default: vmdef
+default: .dummy
+	${MAKE} vmdef
+	${MAKE} run
 
 include ${DEP_FILES}
 
 vmdef: .dummy
-	${PYTHON} dep/vm/gen.py vmdef.def
-	${MAKE} run
+	${PYTHON} dep/vm/gen.py ${VMDEF}
 
 clean: .dummy
 	rm -rf ${BUILD_DIR}

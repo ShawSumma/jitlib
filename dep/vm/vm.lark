@@ -1,7 +1,9 @@
 
-start: scope*
+start: (scope | parse)*
 
 scope: "scope" NAME "{" (pre | post | op | global)* "}"
+
+parse: "parse" NAME block
 
 global: "global" block
 

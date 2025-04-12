@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 struct $scope_buf_t;
 typedef struct $scope_buf_t $scope_buf_t;
@@ -48,6 +50,14 @@ static inline void $scope_buf_push($scope_buf_t *buf, size_t len, const void *sr
     buf->len += len;
 }
 
+static inline void $scope_debug(FILE *out, $scope_buf_t buf) {
+    for (size_t i = 0; i < buf.len; i++) {
+        fprintf(out, "%zu\n", (size_t) ((uint8_t *) buf.mem)[i]);
+    }
+}
+
 $builders
 
-void $scope_run($scope_buf_t bytecode);
+bool $scope_asm($scope_buf_t *buf, const char *str);
+
+void $scope_run(const $scope_buf_t buf);

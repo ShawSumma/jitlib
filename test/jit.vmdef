@@ -1,4 +1,10 @@
 
+parse size_t {
+    if (sscanf($str, "%zu", & $out) == 0) {
+        goto $fail;
+    }
+}
+
 scope interp {
     global {
         static inline void debug_print(size_t n) {
