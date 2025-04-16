@@ -2,3 +2,5 @@ build
 compile_commands.json
 __pycache__
 vmdef
+.cache
+vmdef.old

@@ -70,6 +70,12 @@ typedef struct {
 #define call(name, ...) \
   (labels[lbl_ ## name](__VA_ARGS__))
 
+typedef struct {
+    uint8_t ret;
+    uint8_t nargs;
+    uint8_t args[16];
+} abi_t;
+
 enum {
   RAX,
   RCX,
@@ -88,3 +94,27 @@ enum {
   R14,
   R15,
 };
+
+#define ABI_MAX_IMM ((size_t) 1 << 32)
+
+#ifdef _WIN32
+static const abi_t abi = {
+    .ret = RAX,
+    .nargs = 4,
+    .args[0] = RCX,
+    .args[1] = RDX,
+    .args[2] = R8,
+    .args[3] = R9,
+};
+#else
+static const abi_t abi = {
+    .ret = RAX,
+    .nargs = 6,
+    .args[0] = RDI,
+    .args[1] = RSI,
+    .args[2] = RDX,
+    .args[3] = RCX,
+    .args[4] = R8,
+    .args[5] = R9,
+};
+#endif

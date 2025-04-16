@@ -10,45 +10,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-|.include include/jit/jitlib.dash
-
 $includes
 
-typedef struct {
-    uint8_t ret;
-    uint8_t nargs;
-    uint8_t args[16];
-} abi_t;
-
-#ifdef _WIN32
-static const abi_t abi = {
-    .ret = RAX,
-    .nargs = 4,
-    .args[0] = RCX,
-    .args[1] = RDX,
-    .args[2] = R8,
-    .args[3] = R9,
-};
-#else
-static const abi_t abi = {
-    .ret = RAX,
-    .nargs = 6,
-    .args[0] = RDI,
-    .args[1] = RSI,
-    .args[2] = RDX,
-    .args[3] = RCX,
-    .args[4] = R8,
-    .args[5] = R9,
-};
-#endif
+#define error(...) (fprintf(stderr, __VA_ARGS__), fprintf(stderr, "\n"), exit(1))
 
 $globals
 
-#define error(...) (fprintf(stderr, __VA_ARGS__), exit(1))
-
 #define $next(type) (* (type *) ((size_t) $scope_bytecode.mem + ($scope_index += sizeof(type)) - sizeof(type)))
 
-void $scope_run(const $scope_buf_t $scope_bytecode) {
+void $scope_run($scope_ctx_t *ctx, const $scope_buf_t $scope_bytecode) {
+    (void) ctx;
+    
     $pre
 
     size_t $scope_index = 0;

@@ -31,14 +31,16 @@ int main(int argc, char **argv) {
     }
     list_char_push(&ls, 0);
 
-    if (!interp_asm(&buf, ls.data)) {
+    interp_ctx_t ctx = (interp_ctx_t) { 0 };
+    
+    if (!interp_asm(&ctx, &buf, ls.data)) {
         fprintf(stderr, "error: parse error\n");
         return 1;
     }
 
     list_char_delete(ls);
 
-    interp_run(buf);
+    interp_run(&ctx, buf);
 
     interp_buf_free(buf);
 

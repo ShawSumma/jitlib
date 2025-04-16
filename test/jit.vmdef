@@ -1,53 +1,142 @@
 
-parse size_t {
-    if (sscanf($str, "%zu", & $out) == 0) {
-        goto $fail;
+scope interp: dasc {
+    parse imm64_t {
+        size_t x;
+        if (sscanf($str, "%zu", & x) == 0) {
+            goto $fail;
+        }
+        $out = (imm64_t) x;
     }
-}
 
-scope interp {
+    parse imm32_t {
+        size_t x;
+        if (sscanf($str, "%zu", & x) == 0) {
+            goto $fail;
+        }
+        if (x >= ((size_t) 1 << 32)) {
+            goto $fail;
+        }
+        $out = (uint32_t) x;
+    }
+
+    parse arg_t {
+        if ($str[0] != '%') {
+            goto $fail;
+        }
+        size_t n;
+        if (sscanf($str + 1, "%zu", &n) == 0) {
+            goto $fail;
+        }
+        $out = (reg_t) n;
+    }
+
+    parse reg_t {
+        if ($str[0] != 'r') {
+            goto $fail;
+        }
+        size_t n;
+        if (sscanf($str + 1, "%zu", &n) == 0) {
+            goto $fail;
+        }
+        $out = (reg_t) n;
+    }
+
+    parse label_t {
+        size_t n;
+        if (sscanf($str + 1, "%zu", &n) == 0) {
+            goto $fail;
+        }
+        $out = (label_t) n;
+    }
+
+    header {
+        typedef uint64_t imm64_t;
+        typedef uint32_t imm32_t;
+        typedef uint16_t label_t;
+        typedef uint8_t arg_t;
+        typedef uint8_t reg_t;
+    }
+
+    with {
+        size_t max_pc;
+    }
+
     global {
         static inline void debug_print(size_t n) {
-            printf("debug: %zu\n", n);
+            printf("%zu\n", n);
         }
     }
 
-    op debug r(reg: size_t) {
+    op println (reg_t reg) {
         | mov Rq(abi.args[0]), [rsp + reg * 8]
         | mov64 rax, debug_print
         | call rax
     }
 
-    op mov r(out: size_t), #(val: size_t) {
-        | mov64 rax, val
-        | mov [rsp + out * 8], rax
+    op label (label_t pos) {
+        if (pos >= ctx->max_pc) {
+            ctx->max_pc = (pos + 1) * 2;
+            dasm_growpc(Dst, ctx->max_pc);
+        }
+        |=>pos:
     }
 
-    op add r(out: size_t), r(lhs: size_t), r(rhs: size_t) {
+    op jmp (label_t pos) {
+        | jmp =>pos
+    }
+
+    op blt (reg_t lhs), (reg_t rhs), (label_t pos) {
+        | mov rax, [rsp + lhs * 8]
+        | cmp rax, [rsp + rhs * 8]
+        | jl =>pos
+    }
+
+    op blt (reg_t lhs), (imm64_t x), (label_t pos) {
+        if (x < ABI_MAX_IMM) {
+            | cmp qword [rsp + lhs * 8], x
+            | jl =>pos
+        } else {
+            | mov64 rax, x
+            | cmp [rsp + lhs * 8], rax
+            | jnl =>pos
+        }
+    }
+
+    op mov (reg_t out), (imm64_t val) {
+        if (val < ABI_MAX_IMM) {
+            | mov rax, val
+            | mov [rsp + out * 8], rax
+        } else {
+            | mov64 rax, val
+            | mov [rsp + out * 8], rax
+        }
+    }
+
+    op add (reg_t out), (reg_t lhs), (reg_t rhs) {
         | mov rax, [rsp + lhs * 8]
         | add rax, [rsp + rhs * 8]
         | mov [rsp + out * 8], rax
     }
 
-    op mul r(out: size_t), r(lhs: size_t), r(rhs: size_t) {
-        if (abi.ret != RAX) {
-            | push rax
-        }
+    op add (reg_t out), (reg_t lhs), (imm32_t rhs) {
+        | mov rax, [rsp + lhs * 8]
+        | add rax, rhs
+        | mov [rsp + out * 8], rax
+    }
+
+    op mul (reg_t out), (reg_t lhs), (reg_t rhs) {
         | mov rax, [rsp + lhs * 8]
         | imul qword [rsp + rhs * 8]
         | mov [rsp + out * 8], rax
-        if (abi.ret != RAX) {
-            | pop rax
-        }
     }
 
-    op ret r(out: size_t) {
+    op ret (reg_t out) {
         | mov Rq(abi.ret), [rsp + out * 8]
         | add rsp, stack
         | ret
     }
 
-    op arg r(out: size_t), $(arg: size_t) {
+    op arg (reg_t out), (arg_t arg) {
         if (arg - 1 > abi.nargs) {
             error("arg");
         }
@@ -58,6 +147,9 @@ scope interp {
         size_t stack = 16 * 8;
 
         | begin
+
+        ctx->max_pc = 4;
+        dasm_growpc(Dst, ctx->max_pc);
 
         |->func:
         | sub rsp, stack

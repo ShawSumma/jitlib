@@ -1,0 +1,57 @@
+
+scope interp: c {
+    parse reg_t {
+        if ($str[0] != 'r') {
+            goto $fail;
+        }
+        int n;
+        sscanf(&$str[1], "%i", &n);
+        $out = (reg_t) n;
+    }
+
+    parse num_t {
+        sscanf($str, "%zu", &$out);
+    }
+    
+    header {
+        typedef size_t num_t;
+        typedef uint8_t reg_t;
+        typedef num_t regs_t[16];
+    }
+
+    with {
+        regs_t regs;
+    }
+
+    op mov (reg_t out), (num_t n) {
+        ctx->regs[out] = n;
+    }
+
+    op mov (reg_t out), (reg_t arg) {
+        ctx->regs[out] = ctx->regs[arg];
+    }
+
+    op add (reg_t out), (num_t n) {
+        ctx->regs[out] += n;
+    }
+
+    op add (reg_t out), (reg_t arg) {
+        ctx->regs[out] += ctx->regs[arg];
+    }
+
+    op mov (reg_t out), (reg_t arg) {
+        ctx->regs[out] *= ctx->regs[arg];
+    }
+
+    op mov (reg_t out), (num_t n) {
+        ctx->regs[out] *= n;
+    }
+
+    op print (reg_t in) {
+        printf("%zu\n", ctx->regs[in]);
+    }
+
+    op hlt {
+        return;
+    }
+}

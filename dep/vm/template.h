@@ -56,8 +56,15 @@ static inline void $scope_debug(FILE *out, $scope_buf_t buf) {
     }
 }
 
+struct $scope_ctx_t;
+typedef struct $scope_ctx_t $scope_ctx_t;
+
+$header
+
+$members
+
 $builders
 
-bool $scope_asm($scope_buf_t *buf, const char *str);
+bool $scope_asm($scope_ctx_t *ctx, $scope_buf_t *buf, const char *str);
 
-void $scope_run(const $scope_buf_t buf);
+void $scope_run($scope_ctx_t *ctx, const $scope_buf_t buf);
