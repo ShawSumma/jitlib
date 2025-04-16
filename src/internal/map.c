@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#if defined(_WIN32)
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma comment(lib, "synchronization.lib")
 #endif
 
@@ -26,6 +26,8 @@ _Atomic uint32_t map_free_done;
 _Atomic uint32_t map_free_count;
 
 int map_thread_fn(void *arg) {
+    (void) arg;
+
     #if MAP_DEBUG
         spall_auto_thread_init(111111, SPALL_DEFAULT_BUFFER_SIZE);
     #endif
@@ -63,7 +65,6 @@ int map_thread_fn(void *arg) {
         int state_count  = map_ebr_count;
         uint64_t* states = MAP_REALLOC(NULL, state_count * sizeof(uint64_t));
 
-        MAP_BEGIN("scan");
         map_ebr_entry_t *us = &map_ebr;
         // "snapshot" the current statuses, once the other threads either advance or aren't in the
         // hashset functions we know we can free.
@@ -105,11 +106,12 @@ int map_thread_fn(void *arg) {
                 } while (before_t == now_t);
             }
         }
-        MAP_END();
 
         // no more refs, we can immediately free
         MAP_VIRTUAL_FREE(table, sizeof(map_table_t) + table->cap * sizeof(map_entry_t));
-        MAP_REALLOC(states, 0);
+        
+        void *ugh_ = MAP_REALLOC(states, 0);
+        (void) ugh_;
 
         map_free_done++;
 
