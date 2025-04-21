@@ -6,7 +6,7 @@
 #include <generic/lists.h>
 
 int main(int argc, char **argv) {
-    interp_buf_t buf = interp_buf_new();
+    interp_buffer_t buf = interp_buffer_new();
 
     list_char_t ls = list_char_new();
 
@@ -31,9 +31,9 @@ int main(int argc, char **argv) {
     }
     list_char_push(&ls, 0);
 
-    interp_ctx_t ctx = (interp_ctx_t) { 0 };
+    interp_contxt_t ctx = (interp_contxt_t) { 0 };
     
-    if (!interp_asm(&ctx, &buf, ls.data)) {
+    if (!interp_asm(&ctx, &buf, ls.len, ls.data)) {
         fprintf(stderr, "error: parse error\n");
         return 1;
     }
@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
 
     interp_run(&ctx, buf);
 
-    interp_buf_free(buf);
+    interp_buffer_free(buf);
 
     return 0;
 }

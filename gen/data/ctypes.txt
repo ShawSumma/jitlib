@@ -1,0 +1,8 @@
+
+(signed |unsigned |)(char|short( int|)|int|long( int|)|long long( int|))
+
+void
+(u|)int(8|16|32|64)_t
+(float|double)
+FILE
+(ptrdiff_t|size_t)

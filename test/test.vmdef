@@ -1,57 +1,56 @@
 
 scope interp: c {
-    parse reg_t {
-        if ($str[0] != 'r') {
-            goto $fail;
-        }
-        int n;
-        sscanf(&$str[1], "%i", &n);
-        $out = (reg_t) n;
-    }
+    class reg: uint8_t {}
+    class num: int64_t {}
 
-    parse num_t {
-        sscanf($str, "%zu", &$out);
-    }
+    op halt() {}
+    op print(reg in) {}
+    op mov(reg lhs, num rhs) {}
+    op add(reg lhs, reg rhs) {}
+    op add(reg out, reg lhs, reg rhs) {}
     
-    header {
-        typedef size_t num_t;
-        typedef uint8_t reg_t;
-        typedef num_t regs_t[16];
+    interp void run() {
+        enter {
+            size_t regs[16];
+        }
+
+        op halt() {
+            return;
+        }
+
+        op print(reg in) {
+            printf("%zu\n", regs[in]);
+        }
+
+        op mov(reg out, num rhs) {
+            regs[out] = rhs;
+        }
+
+        op add(reg lhs, reg rhs) {
+            regs[lhs] += regs[rhs];
+        }
+
+        op add(reg out, reg lhs, reg rhs) {
+            regs[out] = regs[lhs] + regs[rhs];
+        }
     }
 
-    with {
-        regs_t regs;
-    }
-
-    op mov (reg_t out), (num_t n) {
-        ctx->regs[out] = n;
-    }
-
-    op mov (reg_t out), (reg_t arg) {
-        ctx->regs[out] = ctx->regs[arg];
-    }
-
-    op add (reg_t out), (num_t n) {
-        ctx->regs[out] += n;
-    }
-
-    op add (reg_t out), (reg_t arg) {
-        ctx->regs[out] += ctx->regs[arg];
-    }
-
-    op mov (reg_t out), (reg_t arg) {
-        ctx->regs[out] *= ctx->regs[arg];
-    }
-
-    op mov (reg_t out), (num_t n) {
-        ctx->regs[out] *= n;
-    }
-
-    op print (reg_t in) {
-        printf("%zu\n", ctx->regs[in]);
-    }
-
-    op hlt {
-        return;
+    syntax asm {
+        parse reg {
+            if ($parse.str[0] != 'r') {
+                goto fail;
+            }
+            int n;
+            if (sscanf(&$parse.str[1], "%i", &n) == 0) {
+                goto fail;
+            }
+            $parse.out = ($class.reg) n;
+        }
+        
+        parse num {
+            if (sscanf($parse.str, "%" SCNi64, &$parse.out) == 0) {
+                goto fail;
+            }
+        }
     }
 }

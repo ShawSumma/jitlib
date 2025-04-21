@@ -22,8 +22,6 @@ FLAGS =
 LDFLAGS = -lm
 CFLAGS = -std=c11 -Wall -Wextra -pedantic -I dep/dasm/src -I include
 
-LDFLAGS := -lsynchronization
-
 FLAGS += -g2
 # CLFAGS += -O2
 # CFLAGS += -fanalyzer
@@ -59,7 +57,7 @@ default: .dummy
 include ${DEP_FILES}
 
 vmdef: .dummy
-	${PYTHON} dep/vm/gen.py ${VMDEF}
+	${PYTHON} gen/new.py ${VMDEF}
 
 clean: .dummy
 	rm -rf ${BUILD_DIR}

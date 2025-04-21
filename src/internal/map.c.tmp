@@ -1,6 +1,7 @@
 
 #include <internal/map_base.h>
 
+#include <assert.h>
 #include <stdbool.h>
 
 #if defined(_MSC_VER) && !defined(__clang__)
