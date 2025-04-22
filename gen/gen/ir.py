@@ -102,6 +102,7 @@ class Run:
         return self.code
 
 class Interp(Scoped):
+    lang: str
     base: str
     ret: types.Type
     args: list[Var]
@@ -110,7 +111,7 @@ class Interp(Scoped):
     enter: Run | None
     exit: Run | None
 
-    def __init__(self, scope: 'Scope', ret: types.Type, base: str, args: list[Var]) -> None:
+    def __init__(self, scope: 'Scope', ret: types.Type, base: str, args: list[Var], lang: str) -> None:
         super().__init__(scope)
 
         assert isinstance(ret, (types.Ptr, types.Name, types.Const))
@@ -121,6 +122,8 @@ class Interp(Scoped):
         self.base = base
         self.ret = ret
         self.args = args
+        self.lang = lang
+
         self.body = {}
 
         self.globals = []
@@ -143,7 +146,7 @@ class Interp(Scoped):
 
     def to(self, replaces: Replaces) -> None:
         params = [
-            f'{self.scope.type('buffer')} buf',
+            f'{self.scope.type('context')} *ctx',
             *(str(arg) for arg in self.args),
         ]
 
@@ -225,7 +228,7 @@ class Syntax(Scoped):
         for opcode in self.scope.opcodes:
             parser = []
             parser.append(f'if (argc == {len(opcode.args)} && !strcmp("{opcode.base}", name)) {{')
-            args = ['out']
+            args = ['ctx']
             for index, arg in enumerate(opcode.args):
                 args.append(f'arg{index}')
                 parser.append(indent(f'{arg.type} arg{index};'))
@@ -236,7 +239,7 @@ class Syntax(Scoped):
                 parser.append(indent('{'))
                 parser.append(indent(indent(res)))
                 parser.append(indent('}'))
-            builder = self.scope.var(f'buffer_{opcode.name_suffix}')
+            builder = self.scope.var(f'op_{opcode.name_suffix}')
             args = ', '.join(args)
             parser.append(indent(f'{builder}({args});'))
             parser.append(indent(f'goto next;'))
@@ -265,7 +268,6 @@ def adder(func: Callable[['Scope'], R]) -> Callable[['Scope', *A], R]:
 
 class Scope:
     name: str
-    lang: str
 
     opcodes: list[Opcode]
     classes: list[Class]
@@ -279,9 +281,8 @@ class Scope:
 
     _user: Replaces | None
 
-    def __init__(self, name: str, lang: str) -> None:
+    def __init__(self, name: str) -> None:
         self.name = name
-        self.lang = lang
 
         self.opcodes = []
         self.classes = []
@@ -342,13 +343,12 @@ class Scope:
     def to(self, replaces: Replaces) -> None:
         self.check()
 
-        context_type = self.type('contxt')
+        context_type = self.type('context')
         buffer_type = self.type('buffer')
-        opcode_type = self.type('opcode')
 
         syntax_decls = []
         for syntax in self.syntaxes:
-            syntax_decls.append(f'bool {syntax.name}({context_type} *ctx, {buffer_type} *out, ptrdiff_t len, const char *str);')
+            syntax_decls.append(f'bool {syntax.name}({context_type} *ctx, ptrdiff_t len, const char *str);')
 
         opcode_list = []
         for opcode in self.opcodes:
@@ -361,17 +361,17 @@ class Scope:
 
         builders = []
         for opcode in self.opcodes:
-            func_name = self.var(f'buffer_{opcode.name_suffix}')
-            params_list = [f'{buffer_type} *buffer']
+            func_name = self.var(f'op_{opcode.name_suffix}')
+            params_list = [f'{context_type} *ctx']
             params_list.extend(f'{arg.type} {arg.name}' for arg in opcode.args)
             params = ', '.join(params_list)
 
             builder = []
             builder.append(f'static inline void {func_name}({params})' + '{')
             builder.append(f'    {self.opcode_type} op = {opcode.name.upper()};')
-            builder.append(f'    {self.var('buffer_push')}(buffer, sizeof({self.opcode_type}), &op);')
+            builder.append(f'    {self.var('buffer_push')}(ctx, sizeof({self.opcode_type}), &op);')
             for arg in opcode.args:
-                builder.append(f'    {self.var('buffer_push')}(buffer, sizeof({arg.type}), &{arg.name});')
+                builder.append(f'    {self.var('buffer_push')}(ctx, sizeof({arg.type}), &{arg.name});')
             builder.append('}')
             builders.append('\n'.join(builder))
 
@@ -386,9 +386,6 @@ class Scope:
             arg_types.insert(0, f'{context_type} *')
             arg_names.insert(0, 'context')
 
-            arg_types.insert(1, buffer_type)
-            arg_names.insert(1, 'buffer')
-
             arg_strs = ', '.join(f'{type} {name}' for type, name in zip(arg_types, arg_names))
 
             interp_decls.append(f'{ret} {func_name}({arg_strs});')
@@ -398,9 +395,6 @@ class Scope:
 
         context_fields = [f'{var.type} {var.name};' for var in self.context]
 
-        if len(context_fields) == 0:
-            context_fields.append('char empty_struct[1];')
-
         replaces.replace('scope.name', self.name)
         replaces.replace('scope.globals', '\n'.join(self.globals))
         replaces.replace('scope.header', '\n'.join(self.header))
@@ -409,9 +403,9 @@ class Scope:
         replaces.replace('scope.context.fields', '\n'.join(context_fields))
 
         replaces.replace('scope.buffer.type', str(buffer_type))
-        replaces.replace('scope.buffer.new', self.var('buffer_new'))
-        replaces.replace('scope.buffer.free', self.var('buffer_free'))
-        replaces.replace('scope.buffer.push', self.var('buffer_push'))
+        replaces.replace('scope.context.new', self.var('new'))
+        replaces.replace('scope.context.free', self.var('free'))
+        replaces.replace('scope.context.push', self.var('buffer_push'))
         
         replaces.replace('scope.builders', '\n\n'.join(builders))
         replaces.replace('scope.syntax.decls', '\n'.join(syntax_decls))

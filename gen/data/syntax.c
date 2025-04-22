@@ -10,9 +10,7 @@
 $scope.includes
 $scope.globals
 
-bool $syntax.name($scope.context.type *ctx, $scope.buffer.type *out, ptrdiff_t len, const char *str) {
-    (void) ctx;
-
+bool $syntax.name($scope.context.type *ctx, ptrdiff_t len, const char *str) {
     if (len < 0) {
         len = strlen(str);
     }
@@ -93,6 +91,7 @@ bool $syntax.name($scope.context.type *ctx, $scope.buffer.type *out, ptrdiff_t l
                 break;
             }
         }
+
 
         $syntax.opcodes
     fail:;

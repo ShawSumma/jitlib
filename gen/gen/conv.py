@@ -130,13 +130,14 @@ def interp_add_run(interp: ir.Interp, tree: Tree) -> None:
 def scope_add_interp(scope: ir.Scope, tree: Tree) -> None:
     assert tree.data == 'interp'
 
-    [ret, name, args, *parts] = tree.children
+    [ret, name, args, lang, *parts] = tree.children
 
     ret = conv_type(ret, scope)
     name = str(name)
     args = [conv_arg(arg, scope) for arg in args.children]
+    lang = str(lang)
 
-    interp = scope.add_interp(ret, name, args)
+    interp = scope.add_interp(ret, name, args, lang)
 
     for part in parts:
         match part.data:
@@ -170,11 +171,10 @@ def scope_add_syntax(scope: ir.Scope, tree: Tree) -> None:
 def conv_scope(tree: Tree) -> ir.Scope:
     assert tree.data == 'scope'
     
-    name, lang, *parts = tree.children
+    name, *parts = tree.children
     name = str(name)
-    lang = str(lang)
     
-    scope = ir.Scope(name, lang)
+    scope = ir.Scope(name)
 
     for part in parts:
         if part.data == 'class':
@@ -208,18 +208,19 @@ def conv_start(tree: Tree) -> None:
             syntax_base = in_file.read()
         with fs.open(f'scope.h') as in_file:
             header_base = in_file.read()
-        with fs.open(f'base/interp.{scope.lang}') as in_file:
-            interp_base = in_file.read()
 
         with open(f'include/vmdef/{scope.name}.h', 'w') as out_file:
             out_file.write(replaces.exec(header_base))
         
         for syntax in scope.syntaxes:
-            with open(f'src/vmdef/{syntax.name}.{scope.lang}', 'w') as out_file:
+            with open(f'src/vmdef/{syntax.name}.c', 'w') as out_file:
                 syntax.to(replaces)
                 out_file.write(replaces.exec(syntax_base))
 
         for interp in scope.interps:
-            with open(f'src/vmdef/{interp.name}.{scope.lang}', 'w') as out_file:
+            with fs.open(f'base/interp.{interp.lang}') as in_file:
+                interp_base = in_file.read()
+            
+            with open(f'src/vmdef/{interp.name}.{interp.lang}', 'w') as out_file:
                 interp.to(replaces)
                 out_file.write(replaces.exec(interp_base))

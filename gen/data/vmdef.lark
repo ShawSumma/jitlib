@@ -1,7 +1,7 @@
 
 start: scope*
 
-scope: "scope" NAME ":" NAME "{" (class | op | interp | syntax)* "}"
+scope: "scope" NAME "{" (class | op | interp | syntax)* "}"
 
 class: "class" NAME ":" type "{" when* "}"
 
@@ -11,7 +11,7 @@ impl: "impl" NAME block
 syntax: "syntax" NAME "{" parse* "}"
 parse: "parse" type block
 
-interp: "interp" type NAME args "{" (when | run)* "}"
+interp: "interp" type NAME args ":" NAME "{" (when | run)* "}"
 run: "op" NAME args block
 
 args: "(" (arg ",")* arg? ")"
