@@ -1,7 +1,8 @@
 build
 compile_commands.json
 __pycache__
-vmdef
+include/vmdef/*.h
+src/vmdef/*.c
+src/vmdef/*.dasc
 .cache
-vmdef.old
 .tags
