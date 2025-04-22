@@ -1,0 +1,95 @@
+
+scope x86 {
+    class r64: int8_t {}
+    class imm64: int64_t {}
+
+    op mov(r64 a, imm64 v) {}
+    op imul(r64 a, r64 b, r64 c) {}
+    op ret() {}
+
+    interp int64_t int(): c {
+        enter {
+            int64_t r64s[16];
+        }
+
+        exit {
+            error("ran off buffer");
+        }
+
+        op mov(r64 a, imm64 v) {
+            r64s[a] = v;
+        }
+        
+        op imul(r64 a, r64 b, r64 c) {
+            r64s[a] = r64s[b] * r64s[c];
+        }
+
+        op ret() {
+            return r64s[0];
+        }
+    }
+
+    interp void *jit(): dasc {
+        enter {
+            | begin
+            |->run:
+        }
+        
+        exit {
+            | end
+
+            return export(void *, run);
+        }
+
+        op mov(r64 a, imm64 v) {
+            | mov64 Rq(a), v
+        }
+        
+        op imul(r64 a, r64 b, r64 c) {
+            | mov Rq(a), Rq(b)
+            | imul Rq(a), Rq(c)
+        }
+
+        op ret() {
+            | ret
+        }
+    }
+
+    syntax asm {
+        parse r64 {
+            static const char *reg_names[16] = {
+                "rax",
+                "rcx",
+                "rdx",
+                "rbx",
+                "rsp",
+                "rbp",
+                "rsi",
+                "rdi",
+                "r8",
+                "r9",
+                "r10",
+                "r11",
+                "r12",
+                "r13",
+                "r14",
+                "r15",
+            };
+            $parse.out = -1;
+            for (int i = 0; i < 16; i++) {
+                if (!strcmp(reg_names[i], $parse.str)) {
+                    $parse.out = i;
+                }
+            }
+            if ($parse.out < 0) {
+                goto fail;
+            }
+        }
+
+        parse imm64 {
+            if (sscanf($parse.str, "%" SCNi64, &$parse.out) == 0) {
+                goto fail;
+            }
+        }
+    }
+}

@@ -15,18 +15,18 @@
 $scope.includes
 $interp.globals
 
-#define next(type) (* (type *) ((size_t) $interp.bytecode.mem + ($interp.index += sizeof(type)) - sizeof(type)))
+#define next(type) (* (type *) ((size_t) ctx->buf.mem + (index += sizeof(type)) - sizeof(type)))
 
-$interp.ret $interp.name($scope.context.type *ctx, $interp.params) {
+$interp.ret $interp.name($interp.params) {
     (void) ctx;
     
     $interp.enter
 
-    size_t $interp.index = 0;
+    size_t index = 0;
 
-    while ($interp.index < $interp.bytecode.len) {
-        size_t $interp.index_base = $interp.index;
-        (void) $interp.index_base;
+    while (index < ctx->buf.len) {
+        size_t index_base = index;
+        (void) index_base;
         $scope.opcode.type op = next($scope.opcode.type);
         switch(op) {
             $interp.cases
@@ -39,7 +39,7 @@ $interp.ret $interp.name($scope.context.type *ctx, $interp.params) {
 
                 #endif
             }
-        }
+        }   
     }
 
     $interp.exit

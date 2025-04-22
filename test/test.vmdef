@@ -1,5 +1,5 @@
 
-scope interp: c {
+scope interp {
     class reg: uint8_t {}
     class num: int64_t {}
 
@@ -9,7 +9,7 @@ scope interp: c {
     op add(reg lhs, reg rhs) {}
     op add(reg out, reg lhs, reg rhs) {}
     
-    interp void run() {
+    interp void run(): c {
         enter {
             size_t regs[16];
         }
@@ -19,7 +19,7 @@ scope interp: c {
         }
 
         op print(reg in) {
-            printf("%zu\n", regs[in]);
+            printf("r%zu = %zu\n", (size_t) in, regs[in]);
         }
 
         op mov(reg out, num rhs) {

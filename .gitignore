@@ -4,3 +4,4 @@ __pycache__
 vmdef
 .cache
 vmdef.old
+.tags
