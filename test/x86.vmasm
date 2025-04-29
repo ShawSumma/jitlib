@@ -1,5 +1,5 @@
 
-mov rax, 3
-mov rcx, 5
-imul rax, rax, rcx
-ret
+    mov rax, 3
+    mov rcx, 5
+    imul rax, rax, rcx
+    ret

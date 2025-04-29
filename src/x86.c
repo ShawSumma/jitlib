@@ -54,18 +54,20 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if (!x86_asm(&ctx, read.chars.len, read.chars.data)) {
-        fprintf(stderr, "error: parse error\n");
-        return 1;
-    }
+    x86_op_mov(&ctx, 0, 3);
+    x86_op_mov(&ctx, 1, 4);
+    x86_op_imul(&ctx, 0, 0, 1);
+    x86_op_ret(&ctx);
+    // if (!x86_asm(&ctx, read.chars.len, read.chars.data)) {
+    //     fprintf(stderr, "error: parse error\n");
+    //     return 1;
+    // }
 
-    int64_t iters = 1000 * 1000;
-
-    iters *= 500;
+    int64_t iters = 1000 * 1000 * 500;
 
     uint64_t rjit = time_jit(&ctx, iters); (void) rjit;
-    // uint64_t rint = time_int(&ctx, iters); (void) rint;
-    // printf("%f\n", (double) rint / (double) rjit);
+    uint64_t rint = time_int(&ctx, iters); (void) rint;
+    printf("%f\n", (double) rint / (double) rjit);
 
     x86_free(ctx);
 

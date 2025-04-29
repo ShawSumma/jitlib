@@ -17,6 +17,8 @@ FLAGS =
 LDFLAGS = -lm
 CFLAGS = -std=c11 -Wall -Wextra -I dep/dasm/src -I include
 
+CFLAGS += -Itest/cuik/include
+
 CLFAGS += -O3
 # CFLAGS += -fanalyzer
 

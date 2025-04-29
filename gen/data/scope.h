@@ -58,11 +58,11 @@ static inline void $scope.context.push($scope.context.type *ctx, size_t len, con
     ctx->buf.len += len;
 }
 
-// class decl
-$scope.class.decls
-
 // user defined header
 $scope.header
+
+// class decl
+$scope.class.decls
 
 // opcode builders
 $scope.builders

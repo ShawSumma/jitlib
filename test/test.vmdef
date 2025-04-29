@@ -5,10 +5,15 @@ scope interp {
 
     op halt() {}
     op print(reg in) {}
-    op mov(reg lhs, num rhs) {}
-    op add(reg lhs, reg rhs) {}
-    op add(reg out, reg lhs, reg rhs) {}
     
+    op mov(reg lhs, num rhs) {}
+    op mov(reg lhs, reg rhs) {}
+
+    op add(reg lhs, num rhs) {}
+    op add(reg lhs, reg rhs) {}
+    op add(reg out, reg lhs, num rhs) {}
+    op add(reg out, reg lhs, reg rhs) {}
+
     interp void run(): c {
         enter {
             size_t regs[16];
@@ -26,8 +31,20 @@ scope interp {
             regs[out] = rhs;
         }
 
+        op mov(reg out, reg rhs) {
+            regs[out] = regs[rhs];
+        }
+
         op add(reg lhs, reg rhs) {
             regs[lhs] += regs[rhs];
+        }
+
+        op add(reg lhs, num rhs) {
+            regs[lhs] += rhs;
+        }
+
+        op add(reg out, reg lhs, num rhs) {
+            regs[out] = regs[lhs] + rhs;
         }
 
         op add(reg out, reg lhs, reg rhs) {

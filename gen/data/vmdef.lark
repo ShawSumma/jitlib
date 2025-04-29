@@ -3,6 +3,8 @@ start: scope*
 
 scope: "scope" NAME "{" (class | op | interp | syntax)* "}"
 
+context: "context" "{" (arg ";")* "}"
+
 class: "class" NAME ":" type "{" when* "}"
 
 op: "op" NAME args "{" "}"
@@ -21,7 +23,7 @@ block: "{" LINE? (block LINE)* "}"
 
 when: WHEN block
 
-type: (CONST NAME | (NAME CONST?)) (PTR CONST | PTR)* 
+type: (CONST NAME | (NAME CONST?)) (PTR CONST | PTR)* | RAW
 CONST: "const"
 PTR: "*"
 
@@ -29,6 +31,7 @@ WHEN: "enter" | "exit"
 
 LINE: /[^{}]+/
 
+RAW: /`[^`]*`/
 NAME: /[a-zA-Z_][a-zA-Z_0-9]*/
 
 %ignore /[\t\r\n ]+/

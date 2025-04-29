@@ -2,7 +2,6 @@
 import gen.types as types
 from gen.text import dedent
 from gen.template import Replaces
-from gen.ctype import C_TYPES
 from gen.text import indent
 from typing import Callable, TypeVar, TypeVarTuple
 
@@ -114,7 +113,7 @@ class Interp(Scoped):
     def __init__(self, scope: 'Scope', ret: types.Type, base: str, args: list[Var], lang: str) -> None:
         super().__init__(scope)
 
-        assert isinstance(ret, (types.Ptr, types.Name, types.Const))
+        assert isinstance(ret, types.Auto)
         assert isinstance(base, str)
         assert isinstance(args, list)
         assert all(isinstance(arg, Var) for arg in args)
@@ -430,9 +429,6 @@ class Scope:
 
     def type(self, base: str) -> types.Type:
         assert isinstance(base, str)
-
-        if base in C_TYPES:
-            return types.Name(base)
 
         return types.Name(f'{self.name}_{base}_t')
 

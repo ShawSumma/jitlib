@@ -1,8 +1,8 @@
 
-    mov r1, 10
-    mov r2, 15
-    add r3, r1, r2
-    print r1
-    print r2
-    print r3    
-    halt
+mov r1, 10
+mov r2, 15
+add r3, r1, r2
+print r1
+print r2
+print r3    
+halt

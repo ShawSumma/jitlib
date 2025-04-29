@@ -1,7 +1,7 @@
 
 import gen.ir as ir
 import gen.types as types
-import gen.fs as fs
+from gen.fs import Data
 from gen.text import indent, dedent
 from gen.template import Replaces
 from lark import Tree
@@ -73,6 +73,8 @@ def type_add_suffix(type: types.Type, *rest: list[str]) -> None:
     return type
 
 def conv_type(tree: Tree, scope: ir.Scope) -> types.Type:
+    if tree.children[0].type == 'RAW':
+        return types.Raw(str(tree.children[0])[1:-1])
     parts = [str(child) for child in tree.children]
     match parts:
         case ['const', name, *rest]:
@@ -204,23 +206,16 @@ def conv_start(tree: Tree) -> None:
 
         scope.to(replaces)
 
-        with fs.open(f'syntax.c') as in_file:
-            syntax_base = in_file.read()
-        with fs.open(f'scope.h') as in_file:
-            header_base = in_file.read()
+        syntax_base = Data.read(f'syntax.c')
+        header_base = Data.read(f'scope.h')
 
-        with open(f'include/vmdef/{scope.name}.h', 'w') as out_file:
-            out_file.write(replaces.exec(header_base))
-        
+        Data.write(to = 'include', file = f'{scope.name}.h', data = replaces.exec(header_base))
+
         for syntax in scope.syntaxes:
-            with open(f'src/vmdef/{syntax.name}.c', 'w') as out_file:
-                syntax.to(replaces)
-                out_file.write(replaces.exec(syntax_base))
+            syntax.to(replaces)
+            Data.write(to = 'src', file = f'{syntax.name}.c', data = replaces.exec(syntax_base))
 
         for interp in scope.interps:
-            with fs.open(f'base/interp.{interp.lang}') as in_file:
-                interp_base = in_file.read()
-            
-            with open(f'src/vmdef/{interp.name}.{interp.lang}', 'w') as out_file:
-                interp.to(replaces)
-                out_file.write(replaces.exec(interp_base))
+            interp_base = Data.read(f'base/interp.{interp.lang}') 
+            interp.to(replaces)
+            Data.write(to = 'src', file = f'{interp.name}.{interp.lang}', data = replaces.exec(interp_base))
